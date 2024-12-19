@@ -79,7 +79,7 @@ func (f *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 
 		var message strings.Builder
 
-		message.WriteString(fingerprint + "\n")
+		message.WriteString(fmt.Sprintf("<!-- %s -->", fingerprint))
 
 		switch comment.Severity {
 		case manifest.SeverityError:
