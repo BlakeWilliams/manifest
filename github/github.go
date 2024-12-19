@@ -16,6 +16,8 @@ type (
 		DetailsForPull(number int) (*PullRequest, error)
 		PullRequestIDsForSha(sha string) ([]int, error)
 		Comment(number int, comment string) error
+		Comments(number int) ([]string, error)
+		ReviewComments(number int) ([]string, error)
 		FileComment(NewFileComment) error
 		Owner() string
 		Repo() string
@@ -49,6 +51,58 @@ func NewClient(token string, owner string, repo string) Client {
 		repo:       repo,
 		HttpClient: http.DefaultClient,
 	}
+}
+
+func (c defaultClient) ReviewComments(number int) ([]string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%d/comments?per_page=100", c.owner, c.repo, number)
+	return c.fetchComments(url)
+}
+
+func (c defaultClient) Comments(number int) ([]string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d/comments?per_page=100", c.owner, c.repo, number)
+	return c.fetchComments(url)
+}
+
+func (c defaultClient) fetchComments(url string) ([]string, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github.groot-preview+json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	type comment struct {
+		Body string `json:"body"`
+	}
+
+	var comments []comment
+	if err := json.Unmarshal(body, &comments); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	commentStrings := make([]string, len(comments))
+	for i, c := range comments {
+		commentStrings[i] = c.Body
+	}
+
+	return commentStrings, nil
 }
 
 func (c defaultClient) DetailsForPull(number int) (*PullRequest, error) {

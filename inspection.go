@@ -32,7 +32,7 @@ func NewInspection(c *Configuration, diffReader io.Reader) (*Inspection, error) 
 	return inspection, nil
 }
 
-func (i *Inspection) PopulatePullDetails(gh github.Client, prNum int) error {
+func (i *Inspection) PopulatePullDetails(gh github.Client, sha string, prNum int) error {
 	pr, err := gh.DetailsForPull(prNum)
 	if err != nil {
 		return err
@@ -44,6 +44,8 @@ func (i *Inspection) PopulatePullDetails(gh github.Client, prNum int) error {
 
 	i.Import.PullTitle = pr.Title
 	i.Import.PullDescription = pr.Body
+
+	i.Import.CurrentSha = sha
 
 	return nil
 }
