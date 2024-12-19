@@ -5,6 +5,9 @@ using configurable rules. It is language agnostic, passing the relevant pull
 request and diff information to scripts via JSON while using the resulting
 stdout JSON to comment on the PR/diffs, fail the build, etc.
 
+## Try Manifest
+Execute the following command from your repository
+`docker run -it -v $(pwd):/app -e MANIFEST_GITHUB_TOKEN=$MANIFEST_GITHUB_TOKEN ghcr.io/jonzudell/manifest/manifest:v0.0.10`
 ## Installing Manifest
 
 Run `go install github.com/blakewilliams/manifest/cmd/manifest` or clone+build from source.

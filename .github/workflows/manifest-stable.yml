@@ -1,0 +1,13 @@
+name: Use Manifest Check Stable
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  call-manifest-check-stable:
+    uses: ./.github/workflows/manifest-check.yml
+    with:
+      MANIFEST_IMAGE_TAG: v0.0.10

@@ -4,4 +4,4 @@ manifest:
   fetchPullRequestInfo: true # Pass PR data to each inspector
   inspectors:
     pr-body:
-        command: './manifest inspector pull-body'
+        command: 'manifest inspector pull-body'
