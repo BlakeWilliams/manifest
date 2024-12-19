@@ -14,6 +14,15 @@ type Formatter interface {
 	Format(source string, i *Import, r Result) error
 }
 
+// FormatterWithHooks is just like Formatter, but has hooks for common
+// lifecycle events.
+type FormatterWithHooks interface {
+	BeforeAll(i *Import) error
+	AfterAll(i *Import) error
+
+	Formatter
+}
+
 type Configuration struct {
 	// ConcurrentInspections is the number of inspections to run concurrently.
 	Concurrency int

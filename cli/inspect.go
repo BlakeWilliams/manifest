@@ -104,12 +104,17 @@ func (c *InspectCmd) populateGitHubData(i *manifest.Inspection) error {
 		return err
 	}
 
+	sha, err := c.CurrentSha()
+	if err != nil {
+		return err
+	}
+
 	prNum, err := c.GitHubPRNumber()
 	if err != nil {
 		return err
 	}
 
-	return i.PopulatePullDetails(client, prNum)
+	return i.PopulatePullDetails(client, sha, prNum)
 }
 
 func (c *InspectCmd) resolveInspectors(config *manifest.Configuration) {
@@ -137,12 +142,7 @@ func (c *InspectCmd) resolveFormatter(config *manifest.Configuration) error {
 			return cli.Exit(fmt.Errorf("cannot use GitHub formatter: %w", err), 1)
 		}
 
-		prNum, err := c.GitHubPRNumber()
-		if err != nil {
-			return cli.Exit(fmt.Errorf("cannot use GitHub formatter: %w", err), 1)
-		}
-
-		config.Formatter = githubformat.New(gh, prNum, c.sha)
+		config.Formatter = githubformat.New(gh)
 	default:
 		return fmt.Errorf("unknown formatter %s", c.formatter)
 	}
@@ -163,7 +163,7 @@ func (c *InspectCmd) GitHubClient() (github.Client, error) {
 		// Get the owner and repo details so we can fetch from the API
 		owner, repo, err := githelpers.NwoFromOrigin()
 		if err != nil {
-			return nil, fmt.Errorf("Could not get owner and repo from git origin: %w", err)
+			return nil, fmt.Errorf("could not get owner and repo from git origin: %w", err)
 		}
 
 		c._githubClient = github.NewClient(token, owner, repo)
@@ -182,15 +182,9 @@ func (c *InspectCmd) GitHubPRNumber() (int, error) {
 		return 0, err
 	}
 
-	sha := c.sha
-	if sha == "" {
-		// Get the most recent pushed SHA so we can fetch the PR details from GitHub
-		sha, err = githelpers.UpstreamSha()
-		if err != nil && err != githelpers.ErrNoPushedBranch {
-			return 0, fmt.Errorf("could not find most recently pushed sha. did you push?")
-		}
-
-		c.sha = sha
+	sha, err := c.CurrentSha()
+	if err != nil {
+		return 0, err
 	}
 
 	numbers, err := client.PullRequestIDsForSha(sha)
@@ -205,6 +199,22 @@ func (c *InspectCmd) GitHubPRNumber() (int, error) {
 	c._githubPRNumber = numbers[0]
 
 	return numbers[0], nil
+}
+
+func (c *InspectCmd) CurrentSha() (string, error) {
+	sha := c.sha
+	if sha == "" {
+		var err error
+		// Get the most recent pushed SHA so we can fetch the PR details from GitHub
+		sha, err = githelpers.UpstreamSha()
+		if err != nil && err != githelpers.ErrNoPushedBranch {
+			return "", fmt.Errorf("could not find most recently pushed sha. did you push?")
+		}
+
+		c.sha = sha
+	}
+
+	return sha, nil
 }
 
 func applyConfig(configArg string, rootConfig *manifest.Configuration) error {
