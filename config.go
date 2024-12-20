@@ -33,6 +33,9 @@ type Configuration struct {
 	// Strict determines if certain inspections or functionality should
 	// gracefully degrade based on the environment. e.g. Missing GitHub tokens.
 	Strict bool
+	// NoGH determines if the token should be pulled from `gh` if
+	// MANIFEST_GITHUB_TOKEN is not present.
+	NoGH bool
 }
 
 type yamlConfiguration struct {
@@ -40,6 +43,7 @@ type yamlConfiguration struct {
 		Concurrency          int    `yaml:"concurrency"`
 		Formatter            string `yaml:"formatter"`
 		FetchPullRequestInfo bool   `yaml:"fetchPullRequestInfo"`
+		NoGH                 bool   `yaml:"noGH"`
 		Inspectors           map[string]struct {
 			Command string `yaml:"command"`
 		} `yaml:"inspectors"`

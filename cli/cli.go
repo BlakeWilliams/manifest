@@ -58,6 +58,10 @@ func New() *CLI {
 						Name:  "strict",
 						Usage: "fails if PR information or other optional data fails to be resolved",
 					},
+					&cli.BoolFlag{
+						Name:  "no-github",
+						Usage: "Don't use the GH CLI to fetch information like the auth token",
+					},
 				},
 				Action: func(cctx *cli.Context) error {
 					var in io.Reader
@@ -91,6 +95,7 @@ func New() *CLI {
 						formatter:   cctx.String("formatter"),
 						sha:         cctx.String("sha"),
 						strict:      cctx.Bool("strict"),
+						noGH:        cctx.Bool("no-gh"),
 						cCtx:        cctx,
 					}
 

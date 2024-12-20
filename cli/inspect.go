@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/blakewilliams/manifest"
 	"github.com/blakewilliams/manifest/formatters/githubformat"
@@ -25,6 +27,7 @@ type InspectCmd struct {
 	inspectors  []string
 	sha         string
 	strict      bool
+	noGH        bool
 	cCtx        *cli.Context
 
 	_githubClient   github.Client
@@ -40,6 +43,9 @@ func (c *InspectCmd) Run(in io.Reader) error {
 
 	if err := applyConfig(c.configPath, manifestConfig); err != nil {
 		return cli.Exit(err, 1)
+	}
+	if c.noGH {
+		manifestConfig.NoGH = true
 	}
 	if err := c.resolveFormatter(manifestConfig); err != nil {
 		return cli.Exit(err, 1)
@@ -156,8 +162,16 @@ func (c *InspectCmd) GitHubClient() (github.Client, error) {
 	if c._githubClient == nil {
 		// Ensure we have a token to fetch with
 		token := os.Getenv("MANIFEST_GITHUB_TOKEN")
-		if token == "" {
+		if token == "" && c.noGH {
 			return nil, errNoGitHubToken
+		}
+
+		if token == "" {
+			rawToken, err := exec.Command("gh", "auth", "token").Output()
+			if err != nil {
+				return nil, fmt.Errorf("could not use gh to get token: %w", err)
+			}
+			token = strings.TrimSpace(string(rawToken))
 		}
 
 		// Get the owner and repo details so we can fetch from the API
