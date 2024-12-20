@@ -71,6 +71,16 @@ func (i *Inspection) Perform() error {
 	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(i.config.Concurrency)
 
+	if f, ok := i.config.Formatter.(FormatterWithHooks); ok {
+		err := f.BeforeAll(i.Import)
+		if err != nil {
+			return fmt.Errorf("formatter before all hook failed: %w", err)
+		}
+
+		// TODO handle err
+		defer f.AfterAll(i.Import)
+	}
+
 	for name, inspector := range i.config.Inspectors {
 		g.Go(func() error {
 			if ctx.Err() != nil {
