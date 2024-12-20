@@ -15,4 +15,4 @@ ENV PATH="/home/manifestuser/go/bin:${PATH}"
 WORKDIR /app
 RUN git config --global --add safe.directory /app
 
-CMD /app/scripts/ci.sh
+CMD /app/scripts/ci
