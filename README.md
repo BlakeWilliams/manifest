@@ -8,8 +8,14 @@ stdout JSON to comment on the PR/diffs, fail the build, etc.
 
 ## Installing Manifest
 
-Run `go install github.com/blakewilliams/manifest/cmd/manifest` or clone+build from source. If you prefer to run manifest in a docker container the following command can be executed at the root of your project.
-`docker run -it -v $(pwd):/app -e MANIFEST_GITHUB_TOKEN=$MANIFEST_GITHUB_TOKEN ghcr.io/jonzudell/manifest/manifest:v0.0.10`
+Run `go install github.com/blakewilliams/manifest/cmd/manifest` or clone+build from source.
+
+A docker container is also provided that can be used to run manifest:
+
+```
+$ docker run -it -v $(pwd):/app -e MANIFEST_GITHUB_TOKEN=$MANIFEST_GITHUB_TOKEN ghcr.io/blakewilliams/manifest/manifest:v0.0.1`
+```
+
 ## Usage
 
 The primary usage of `manifest` is via `manifest inspect`, which can be configured directly in the CLI (see `manifest inspect help`) or a configuration file in your root directory called `manifest.config.yaml`:
