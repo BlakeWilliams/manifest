@@ -5,6 +5,16 @@ using configurable rules. It is language agnostic, passing the relevant pull
 request and diff information to scripts via JSON while using the resulting
 stdout JSON to comment on the PR/diffs, fail the build, etc.
 
+## Why use Manifest over writing individual GitHub actions?
+
+Manifest isn't a replacement for GitHub actions, but was designed to be used
+_with_ actions. It offers several benefits over using actions directly:
+
+- Consuming standard PR information (title, description, sha, etc.) is as easy as `JSON.parse`.
+- Common usage patterns like commenting on PRs or enforcing rules with good feedback is as simple as configuring Manifest and outputting JSON to stdout.
+- Additional complexity like GitHub comment de-duplication and diffing PRs is handled for you.
+- Unlike actions, it runs locally on any engineers machine.
+
 
 ## Installing Manifest
 
