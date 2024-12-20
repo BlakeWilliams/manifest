@@ -1,0 +1,36 @@
+name: Manifest check
+
+on:
+  workflow_call:
+    secrets: {}
+    inputs:
+      MANIFEST_IMAGE_TAG:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  manifest-check:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/blakewilliams/manifest/manifest:${{ inputs.MANIFEST_IMAGE_TAG }}
+      options: --user 1001
+    env:
+      MANIFEST_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10000
+
+      - name: Fetch target branch
+        run: |
+          git fetch --depth=1 origin ${{ github.event.pull_request.base.ref }} \
+            ${{ github.event.pull_request.head.ref }}
+
+      - name: Manifest inspection
+        run: |
+          /home/manifestuser/cli.sh ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.ref }}
