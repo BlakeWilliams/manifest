@@ -32,7 +32,7 @@ func NewInspection(c *Configuration, diffReader io.Reader) (*Inspection, error) 
 	return inspection, nil
 }
 
-func (i *Inspection) PopulatePullDetails(gh github.Client, prNum int) error {
+func (i *Inspection) PopulatePullDetails(gh github.Client, sha string, prNum int) error {
 	pr, err := gh.DetailsForPull(prNum)
 	if err != nil {
 		return err
@@ -44,6 +44,8 @@ func (i *Inspection) PopulatePullDetails(gh github.Client, prNum int) error {
 
 	i.Import.PullTitle = pr.Title
 	i.Import.PullDescription = pr.Body
+
+	i.Import.CurrentSha = sha
 
 	return nil
 }
@@ -68,6 +70,16 @@ func (i *Inspection) Perform() error {
 	// TODO add a timout config
 	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(i.config.Concurrency)
+
+	if f, ok := i.config.Formatter.(FormatterWithHooks); ok {
+		err := f.BeforeAll(i.Import)
+		if err != nil {
+			return fmt.Errorf("formatter before all hook failed: %w", err)
+		}
+
+		// TODO handle err
+		defer f.AfterAll(i.Import)
+	}
 
 	for name, inspector := range i.config.Inspectors {
 		g.Go(func() error {

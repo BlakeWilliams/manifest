@@ -27,6 +27,16 @@ func (f *fakeGitHubClient) FileComment(fc github.NewFileComment) error {
 	return args.Error(0)
 }
 
+func (f *fakeGitHubClient) Comments(number int) ([]string, error) {
+	args := f.Called(number)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (f *fakeGitHubClient) ReviewComments(number int) ([]string, error) {
+	args := f.Called(number)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func TestFormat_FileComment(t *testing.T) {
 	i := &manifest.Import{
 		PullNumber: 1,
@@ -63,7 +73,7 @@ func TestFormat_FileComment(t *testing.T) {
 			strings.Contains(comment, "> [!TIP]")
 	})).Return(nil)
 
-	formatter := New(client, 1, "abc123")
+	formatter := New(client)
 	err := formatter.Format("test", i, result)
 	require.NoError(t, err)
 
@@ -90,11 +100,47 @@ func TestFormat_CommentError(t *testing.T) {
 	client := &fakeGitHubClient{}
 	client.On("FileComment", mock.Anything).Return(fmt.Errorf("comment error"))
 
-	formatter := New(client, 1, "abc123")
+	formatter := New(client)
 	err := formatter.Format("test", i, result)
 
 	require.Error(t, err)
 	require.Equal(t, "comment error", err.Error())
 
 	client.AssertExpectations(t)
+}
+
+func TestFormat_Deduplicates(t *testing.T) {
+	i := &manifest.Import{
+		PullNumber: 1,
+	}
+
+	result := manifest.Result{
+		Comments: []manifest.Comment{
+			{
+				Text:     "Test comment",
+				Severity: manifest.SeverityError,
+			},
+			{
+				Text:     "File comment!",
+				Severity: manifest.SeverityError,
+				File:     "test.go",
+				Line:     10,
+				Side:     "RIGHT",
+			},
+		},
+	}
+
+	client := &fakeGitHubClient{}
+
+	client.On("Comments", 1).Return([]string{"<!-- manifest:test -->", "<!-- manifest:test:test.go:10:RIGHT -->"}, nil)
+	client.On("ReviewComments", 1).Return([]string{"<!-- manifest:test:test.go:10:RIGHT -->"}, nil)
+
+	formatter := New(client)
+	err := formatter.BeforeAll(i)
+	require.NoError(t, err)
+	err = formatter.Format("test", i, result)
+	require.NoError(t, err)
+
+	client.AssertExpectations(t)
+	client.AssertNotCalled(t, "FileComment", mock.Anything)
 }
