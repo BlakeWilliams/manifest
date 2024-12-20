@@ -14,6 +14,7 @@ import (
 	"github.com/blakewilliams/manifest/formatters/prettyformat"
 	"github.com/blakewilliams/manifest/githelpers"
 	"github.com/blakewilliams/manifest/github"
+	"github.com/blakewilliams/manifest/pkg/multierror"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -25,7 +26,6 @@ type InspectCmd struct {
 	concurrency int
 	formatter   string
 	inspectors  []string
-	sha         string
 	strict      bool
 	noGH        bool
 	cCtx        *cli.Context
@@ -95,12 +95,26 @@ func (c *InspectCmd) Run(in io.Reader) error {
 		return cli.Exit(color.New(color.FgRed).Sprint("No inspectors were provided. Add one to manifest.config.yaml or passed via --inspector"), 1)
 	}
 
-	// Run the real inspection
-	if err := inspection.Perform(); err != nil {
-		return cli.Exit(color.New(color.FgRed).Sprintf("Manifest's inspection encountered an error: %s\n", err.Error()), 1)
+	err = inspection.Perform()
+
+	if err == nil {
+		color.New(color.FgGreen).Fprintf(os.Stderr, "manifest inspection passed!\n")
+		return nil
 	}
 
-	color.New(color.FgGreen).Fprintf(os.Stderr, "manifest inspection passed!\n")
+	if errors.Is(err, manifest.ErrCheckReportedError) {
+		return cli.Exit(color.New(color.FgRed).Sprint("Manifest check failed due to one or more checkers reporting an error."), 1)
+	}
+
+	var multiError *multierror.Error
+	if errors.As(err, &multiError) {
+		for _, err := range multiError.Unwrap() {
+			fmt.Fprintf(os.Stderr, "%s %s\n", color.New(color.FgRed).Sprint("Check error:"), err)
+		}
+
+		return cli.Exit(color.New(color.FgRed).Sprint("Manifest check failed due to one or more checkers failing to run successfully."), 1)
+	}
+
 	return nil
 }
 
@@ -110,9 +124,9 @@ func (c *InspectCmd) populateGitHubData(i *manifest.Inspection) error {
 		return err
 	}
 
-	sha, err := c.CurrentSha()
-	if err != nil {
-		return err
+	sha, err := githelpers.MostRecentSha()
+	if err != nil && err != githelpers.ErrNoPushedBranch {
+		return fmt.Errorf("could not find most recently pushed sha. did you push?")
 	}
 
 	prNum, err := c.GitHubPRNumber()
@@ -196,12 +210,12 @@ func (c *InspectCmd) GitHubPRNumber() (int, error) {
 		return 0, err
 	}
 
-	sha, err := c.CurrentSha()
+	branch, err := githelpers.CurrentBranch()
 	if err != nil {
 		return 0, err
 	}
 
-	numbers, err := client.PullRequestIDsForSha(sha)
+	numbers, err := client.PullRequestIDsForBranch(branch)
 	if err != nil {
 		return 0, err
 	}
@@ -213,22 +227,6 @@ func (c *InspectCmd) GitHubPRNumber() (int, error) {
 	c._githubPRNumber = numbers[0]
 
 	return numbers[0], nil
-}
-
-func (c *InspectCmd) CurrentSha() (string, error) {
-	sha := c.sha
-	if sha == "" {
-		var err error
-		// Get the most recent pushed SHA so we can fetch the PR details from GitHub
-		sha, err = githelpers.UpstreamSha()
-		if err != nil && err != githelpers.ErrNoPushedBranch {
-			return "", fmt.Errorf("could not find most recently pushed sha. did you push?")
-		}
-
-		c.sha = sha
-	}
-
-	return sha, nil
 }
 
 func applyConfig(configArg string, rootConfig *manifest.Configuration) error {

@@ -50,9 +50,9 @@ func New() *CLI {
 						Name:  "formatter",
 						Usage: "Sets the formatter to use",
 					},
-					&cli.StringFlag{
-						Name:  "sha",
-						Usage: "Sets the current sha",
+					&cli.IntFlag{
+						Name:  "pr",
+						Usage: "sets the PR to operate against",
 					},
 					&cli.BoolFlag{
 						Name:  "strict",
@@ -88,15 +88,15 @@ func New() *CLI {
 					}
 
 					inspectCmd := &InspectCmd{
-						configPath:  cctx.String("config"),
-						diffPath:    cctx.String("diff"),
-						jsonOnly:    cctx.Bool("json-only"),
-						concurrency: cctx.Int("concurrency"),
-						formatter:   cctx.String("formatter"),
-						sha:         cctx.String("sha"),
-						strict:      cctx.Bool("strict"),
-						noGH:        cctx.Bool("no-gh"),
-						cCtx:        cctx,
+						configPath:      cctx.String("config"),
+						diffPath:        cctx.String("diff"),
+						jsonOnly:        cctx.Bool("json-only"),
+						concurrency:     cctx.Int("concurrency"),
+						formatter:       cctx.String("formatter"),
+						strict:          cctx.Bool("strict"),
+						noGH:            cctx.Bool("no-gh"),
+						cCtx:            cctx,
+						_githubPRNumber: cctx.Int("pr"),
 					}
 
 					return inspectCmd.Run(in)

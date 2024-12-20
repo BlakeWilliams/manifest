@@ -4,14 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/blakewilliams/manifest/github"
+	"github.com/blakewilliams/manifest/pkg/multierror"
 	"golang.org/x/sync/errgroup"
 )
+
+var ErrCheckReportedError = errors.New("one or more checkers reported an error")
 
 type Inspection struct {
 	config *Configuration
@@ -81,44 +86,69 @@ func (i *Inspection) Perform() error {
 		defer f.AfterAll(i.Import)
 	}
 
+	var wg sync.WaitGroup
+	multiErr := &multierror.Error{}
+
+	hasInspectErrors := false
+
 	for name, inspector := range i.config.Inspectors {
-		g.Go(func() error {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
 			if ctx.Err() != nil {
-				return nil
+				return
 			}
 
 			cmd := exec.Command("sh", "-c", inspector)
 			cmd.Stdin = bytes.NewReader(importJSON)
 			output, err := cmd.Output()
 			if err != nil {
-				return err
+				multiErr.Add(fmt.Errorf("`%s` check failed to run: %w", name, err))
+				return
 			}
 
 			var result Result
 			err = json.Unmarshal(output, &result)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to parse output for inspector %s: %s\n", name, err)
-				return err
+				if os.Getenv("DEBUG") != "" {
+					fmt.Fprint(os.Stderr, string(output))
+				}
+				multiErr.Add(err)
+				return
 			}
 
 			if result.Failure != "" {
-				return fmt.Errorf("inspector %s failed with reported reason: %s", name, result.Failure)
+				multiErr.Add(fmt.Errorf("inspector %s failed with reported reason: %s", name, result.Failure))
+				return
 			}
 
-			for _, comment := range result.Comments {
-				if comment.Severity == SeverityError {
-					break
+			if !hasInspectErrors {
+				for _, comment := range result.Comments {
+					if comment.Severity == SeverityError {
+						hasInspectErrors = true
+						break
+					}
 				}
 			}
 
-			return i.config.Formatter.Format(name, i.Import, result)
-		})
+			if err := i.config.Formatter.Format(name, i.Import, result); err != nil {
+				multiErr.Add(err)
+				return
+			}
+		}()
 	}
 
-	err = g.Wait()
-	if err != nil {
-		return fmt.Errorf("one or more rules failed: %w", err)
+	wg.Wait()
+
+	if multiErr.None() {
+		if hasInspectErrors {
+			return ErrCheckReportedError
+		}
+
+		return nil
 	}
 
-	return nil
+	return multiErr.ErrorOrNil()
 }
