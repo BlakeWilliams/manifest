@@ -28,27 +28,27 @@ $ docker run -it -v $(pwd):/app -e MANIFEST_GITHUB_TOKEN=$MANIFEST_GITHUB_TOKEN 
 
 ## Usage
 
-The primary usage of `manifest` is via `manifest inspect`, which can be configured directly in the CLI (see `manifest inspect help`) or a configuration file in your root directory called `manifest.config.yaml`:
+The primary usage of `manifest` is via `manifest check`, which can be configured directly in the CLI (see `manifest check help`) or a configuration file in your root directory called `manifest.config.yaml`:
 
 ```yaml
 # Sample YAML config
 manifest:
-  concurrency: 2 # How many inspectors to run at once
+  concurrency: 2 # How many checks to run at once
   formatter: pretty # The formatter to use
-  inspectors: # The inspector scripts to run and report on
+  checks: # The check scripts to run and report on
     feature_flags:
-      command: "script/feature-flag-inspector"
+      command: "script/feature-flag-check"
     rails_job_perform:
-      command: "script/job-perform-inspector"
+      command: "script/job-perform-check"
 ```
 
-Then you can run `git diff main | manifest inspect` which will run each of the provided
-inspectors in the provided config. Arguments provided in the config can be
-overridden using the CLI flags ( see `manifest inspect help`).
+Then you can run `git diff main | manifest check` which will run each of the provided
+checks in the provided config. Arguments provided in the config can be
+overridden using the CLI flags ( see `manifest check help`).
 
-## Writing a custom inspector
+## Writing a custom checker
 
-Manifest inspectors can be written in any language since they effectively accept
+Manifest checks can be written in any language since they effectively accept
 JSON as stdin, and output JSON in stdout so `manifest` can output it
 appropriately. The following JSON is the expected format:
 
@@ -122,14 +122,14 @@ See also the `Result` struct in `result.go` for more details on the expected out
 
 ### Getting import JSON to test scripts
 
-Since manifest inspectors work primarily through piping stdin and stdout, you'll need to generate the relevant JSON to pass to scripts utilizing `manifest`. To get JSON usable for testing or running manifest inspectors, you can pass `--only-import-json` to bypass running the configured scripts and return only the import JSON that would be passed to the inspectors.
+Since manifest checks work primarily through piping stdin and stdout, you'll need to generate the relevant JSON to pass to scripts utilizing `manifest`. To get JSON usable for testing or running manifest checks, you can pass `--only-import-json` to bypass running the configured scripts and return only the import JSON that would be passed to the checks.
 
 ```sh
-$ cat my.diff | manifest inspect --json-only
+$ cat my.diff | manifest check --json-only
 ```
 
-Which should result in output like the example in "Writing a manifest inspector". You can then pipe the JSON directly into your inspector script:
+Which should result in output like the example in "Writing a custom manifest checker". You can then pipe the JSON directly into your check script:
 
 ```sh
-$ cat my.diff | manifest inspect --json-only | my-inspector
+$ cat my.diff | manifest check --json-only | my-check
 ```

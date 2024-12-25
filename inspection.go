@@ -18,26 +18,26 @@ import (
 
 var ErrCheckReportedError = errors.New("one or more checkers reported an error")
 
-type Inspection struct {
+type Check struct {
 	config *Configuration
 	Import *Import
 }
 
-func NewInspection(c *Configuration, diffReader io.Reader) (*Inspection, error) {
+func NewCheck(c *Configuration, diffReader io.Reader) (*Check, error) {
 	diff, err := NewDiff(diffReader)
 	if err != nil {
 		return nil, fmt.Errorf("could not create diff: %w", err)
 	}
 
-	inspection := &Inspection{
+	check := &Check{
 		config: c,
 		Import: &Import{Strict: c.Strict, Diff: diff},
 	}
 
-	return inspection, nil
+	return check, nil
 }
 
-func (i *Inspection) PopulatePullDetails(gh github.Client, sha string, prNum int) error {
+func (i *Check) PopulatePullDetails(gh github.Client, sha string, prNum int) error {
 	pr, err := gh.DetailsForPull(prNum)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (i *Inspection) PopulatePullDetails(gh github.Client, sha string, prNum int
 	return nil
 }
 
-func (i *Inspection) ImportJSON() ([]byte, error) {
+func (i *Check) ImportJSON() ([]byte, error) {
 	out, err := json.Marshal(i.Import)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshall output for import JSON: %w", err)
@@ -64,9 +64,9 @@ func (i *Inspection) ImportJSON() ([]byte, error) {
 	return out, nil
 }
 
-// Inspect accepts a configuration and a diff, then runs + reports on the rules
+// Perform accepts a configuration and a diff, then runs + reports on the rules
 // based on the configuration+output.
-func (i *Inspection) Perform() error {
+func (i *Check) Perform() error {
 	importJSON, err := i.ImportJSON()
 	if err != nil {
 		return err
@@ -89,9 +89,9 @@ func (i *Inspection) Perform() error {
 	var wg sync.WaitGroup
 	multiErr := &multierror.Error{}
 
-	hasInspectErrors := false
+	hasCheckErrors := false
 
-	for name, inspector := range i.config.Inspectors {
+	for name, check := range i.config.Checkers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -100,7 +100,7 @@ func (i *Inspection) Perform() error {
 				return
 			}
 
-			cmd := exec.Command("sh", "-c", inspector)
+			cmd := exec.Command("sh", "-c", check)
 			cmd.Stdin = bytes.NewReader(importJSON)
 			output, err := cmd.Output()
 			if err != nil {
@@ -111,7 +111,7 @@ func (i *Inspection) Perform() error {
 			var result Result
 			err = json.Unmarshal(output, &result)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to parse output for inspector %s: %s\n", name, err)
+				fmt.Fprintf(os.Stderr, "Failed to parse output for check %s: %s\n", name, err)
 				if os.Getenv("DEBUG") != "" {
 					fmt.Fprint(os.Stderr, string(output))
 				}
@@ -120,14 +120,14 @@ func (i *Inspection) Perform() error {
 			}
 
 			if result.Failure != "" {
-				multiErr.Add(fmt.Errorf("inspector %s failed with reported reason: %s", name, result.Failure))
+				multiErr.Add(fmt.Errorf("Check %s failed with reported reason: %s", name, result.Failure))
 				return
 			}
 
-			if !hasInspectErrors {
+			if !hasCheckErrors {
 				for _, comment := range result.Comments {
 					if comment.Severity == SeverityError {
-						hasInspectErrors = true
+						hasCheckErrors = true
 						break
 					}
 				}
@@ -143,7 +143,7 @@ func (i *Inspection) Perform() error {
 	wg.Wait()
 
 	if multiErr.None() {
-		if hasInspectErrors {
+		if hasCheckErrors {
 			return ErrCheckReportedError
 		}
 

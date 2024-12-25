@@ -10,7 +10,7 @@ import (
 
 type noopFormatter struct{}
 
-func (f noopFormatter) Format(inspector string, i *Import, r Result) error { return nil }
+func (f noopFormatter) Format(checker string, i *Import, r Result) error { return nil }
 
 //go:embed testconfig.yaml
 var testConfig string
@@ -22,7 +22,7 @@ func TestConfig(t *testing.T) {
 
 	require.Equal(t, 2, config.Concurrency)
 	require.NotNil(t, config.Formatter)
-	require.Len(t, config.Inspectors, 1, "expected 1 plugin to be configured")
-	railsJobInspector := config.Inspectors["rails_job_perform"]
-	require.Equal(t, "manifest inspector rails_job_perform", railsJobInspector)
+	require.Len(t, config.Checkers, 1, "expected 1 plugin to be configured")
+	railsJobCheck := config.Checkers["rails_job_perform"]
+	require.Equal(t, "manifest checker rails_job_perform", railsJobCheck)
 }

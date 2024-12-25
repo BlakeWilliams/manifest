@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/blakewilliams/manifest/inspectors"
+	"github.com/blakewilliams/manifest/checkers"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -20,8 +20,8 @@ func New() *CLI {
 		Usage: "Runs rules against pull requests and diffs",
 		Commands: []*cli.Command{
 			{
-				Name:  "inspect",
-				Usage: "Runs the configured inspectors against the provided diff",
+				Name:  "check",
+				Usage: "Runs the configured checks against the provided diff",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "config",
@@ -35,16 +35,16 @@ func New() *CLI {
 					},
 					&cli.BoolFlag{
 						Name:  "json-only",
-						Usage: "Outputs only the JSON and does not run the inspectors",
+						Usage: "Outputs only the JSON and does not run the checks",
 					},
 					&cli.IntFlag{
 						Name:  "concurrency",
-						Usage: "Sets how many inspectors will run concurrently",
+						Usage: "Sets how many checks will run concurrently",
 					},
 					&cli.StringSliceFlag{
-						Name:    "inspector",
+						Name:    "checker",
 						Aliases: []string{"i"},
-						Usage:   "Runs the provided inspector `script`",
+						Usage:   "Runs the provided check `script`",
 					},
 					&cli.StringFlag{
 						Name:  "formatter",
@@ -87,7 +87,7 @@ func New() *CLI {
 						return cli.Exit(color.New(color.FgRed).Sprint("No diff provided. Please provide a --diff or pass the diff via stdin."), 1)
 					}
 
-					inspectCmd := &InspectCmd{
+					checkCmd := &CheckCmd{
 						configPath:      cctx.String("config"),
 						diffPath:        cctx.String("diff"),
 						jsonOnly:        cctx.Bool("json-only"),
@@ -99,18 +99,18 @@ func New() *CLI {
 						_githubPRNumber: cctx.Int("pr"),
 					}
 
-					return inspectCmd.Run(in)
+					return checkCmd.Run(in)
 				},
 			},
 			{
-				Name:  "inspector",
-				Usage: "runs the given built-in inspector",
+				Name:  "checker",
+				Usage: "runs the given built-in checker",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "rails_job_perform",
-						Usage: "Runs the Rails job inspector to ensure perform is modified safely for rolling deploys",
+						Usage: "Runs the Rails job checker to ensure perform is modified safely for rolling deploys",
 						Action: func(cctx *cli.Context) error {
-							err := inspectors.Wrap("rails_job_perform", inspectors.RailsJobArguments)
+							err := checkers.Wrap("rails_job_perform", checkers.RailsJobArguments)
 							if err != nil {
 								fmt.Fprintf(os.Stderr, "%s\n", err)
 							}
@@ -122,7 +122,7 @@ func New() *CLI {
 						Name:  "pull-body",
 						Usage: "Ensures that the pull request body is not empty",
 						Action: func(cctx *cli.Context) error {
-							err := inspectors.Wrap("pull-body", inspectors.PullBody)
+							err := checkers.Wrap("pull-body", checkers.PullBody)
 							if err != nil {
 								fmt.Fprintf(os.Stderr, "%s\n", err)
 							}

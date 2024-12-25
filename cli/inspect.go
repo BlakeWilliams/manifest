@@ -19,13 +19,13 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-type InspectCmd struct {
+type CheckCmd struct {
 	configPath  string
 	diffPath    string
 	jsonOnly    bool
 	concurrency int
 	formatter   string
-	inspectors  []string
+	checks      []string
 	strict      bool
 	noGH        bool
 	cCtx        *cli.Context
@@ -34,11 +34,11 @@ type InspectCmd struct {
 	_githubPRNumber int
 }
 
-func (c *InspectCmd) Run(in io.Reader) error {
+func (c *CheckCmd) Run(in io.Reader) error {
 	manifestConfig := &manifest.Configuration{
 		Concurrency: 1,
 		Formatter:   prettyformat.New(os.Stdout),
-		Inspectors:  map[string]string{},
+		Checkers:    map[string]string{},
 	}
 
 	if err := applyConfig(c.configPath, manifestConfig); err != nil {
@@ -50,7 +50,7 @@ func (c *InspectCmd) Run(in io.Reader) error {
 	if err := c.resolveFormatter(manifestConfig); err != nil {
 		return cli.Exit(err, 1)
 	}
-	c.resolveInspectors(manifestConfig)
+	c.resolveChecks(manifestConfig)
 	if c.concurrency > 0 {
 		manifestConfig.Concurrency = c.concurrency
 	}
@@ -58,15 +58,15 @@ func (c *InspectCmd) Run(in io.Reader) error {
 		manifestConfig.Strict = true
 	}
 
-	inspection, err := manifest.NewInspection(manifestConfig, in)
+	check, err := manifest.NewCheck(manifestConfig, in)
 	if err != nil {
 		color.New(color.FgRed).Println(err.Error())
 		return cli.ShowSubcommandHelp(c.cCtx)
 	}
 
-	if err := c.populateGitHubData(inspection); err != nil {
+	if err := c.populateGitHubData(check); err != nil {
 		// If we fail to resolve any GitHub data, we can still run the
-		// inspection locally. If we're in strict mode, we should exit with an
+		// checks locally. If we're in strict mode, we should exit with an
 		// error.
 		if c.strict {
 			return cli.Exit(err, 1)
@@ -77,7 +77,7 @@ func (c *InspectCmd) Run(in io.Reader) error {
 
 	// Run the relevant command
 	if c.jsonOnly {
-		out, err := inspection.ImportJSON()
+		out, err := check.ImportJSON()
 		if err != nil {
 			fmt.Printf("Could not return import JSON: %s\n", err)
 		}
@@ -86,19 +86,19 @@ func (c *InspectCmd) Run(in io.Reader) error {
 		return nil
 	}
 
-	// Validate we have inspectors to run
-	if len(manifestConfig.Inspectors) == 0 {
+	// Validate we have checks to run
+	if len(manifestConfig.Checkers) == 0 {
 		if err := cli.ShowSubcommandHelp(c.cCtx); err != nil {
 			fmt.Println(err)
 		}
 		fmt.Printf("\n")
-		return cli.Exit(color.New(color.FgRed).Sprint("No inspectors were provided. Add one to manifest.config.yaml or passed via --inspector"), 1)
+		return cli.Exit(color.New(color.FgRed).Sprint("No checks were provided. Add one to manifest.config.yaml or passed via --check"), 1)
 	}
 
-	err = inspection.Perform()
+	err = check.Perform()
 
 	if err == nil {
-		color.New(color.FgGreen).Fprintf(os.Stderr, "manifest inspection passed!\n")
+		color.New(color.FgGreen).Fprintf(os.Stderr, "manifest check passed!\n")
 		return nil
 	}
 
@@ -118,7 +118,7 @@ func (c *InspectCmd) Run(in io.Reader) error {
 	return nil
 }
 
-func (c *InspectCmd) populateGitHubData(i *manifest.Inspection) error {
+func (c *CheckCmd) populateGitHubData(i *manifest.Check) error {
 	client, err := c.GitHubClient()
 	if err != nil {
 		return err
@@ -137,17 +137,17 @@ func (c *InspectCmd) populateGitHubData(i *manifest.Inspection) error {
 	return i.PopulatePullDetails(client, sha, prNum)
 }
 
-func (c *InspectCmd) resolveInspectors(config *manifest.Configuration) {
-	if len(c.inspectors) > 0 {
-		config.Inspectors = make(map[string]string, len(c.inspectors))
+func (c *CheckCmd) resolveChecks(config *manifest.Configuration) {
+	if len(c.checks) > 0 {
+		config.Checkers = make(map[string]string, len(c.checks))
 
-		for _, inspector := range c.inspectors {
-			config.Inspectors[inspector] = inspector
+		for _, check := range c.checks {
+			config.Checkers[check] = check
 		}
 	}
 }
 
-func (c *InspectCmd) resolveFormatter(config *manifest.Configuration) error {
+func (c *CheckCmd) resolveFormatter(config *manifest.Configuration) error {
 	if c.formatter == "" {
 		config.Formatter = prettyformat.New(os.Stdout)
 		return nil
@@ -172,7 +172,7 @@ func (c *InspectCmd) resolveFormatter(config *manifest.Configuration) error {
 
 var errNoGitHubToken = errors.New("no GitHub token found in MANIFEST_GITHUB_TOKEN")
 
-func (c *InspectCmd) GitHubClient() (github.Client, error) {
+func (c *CheckCmd) GitHubClient() (github.Client, error) {
 	if c._githubClient == nil {
 		// Ensure we have a token to fetch with
 		token := os.Getenv("MANIFEST_GITHUB_TOKEN")
@@ -200,7 +200,7 @@ func (c *InspectCmd) GitHubClient() (github.Client, error) {
 	return c._githubClient, nil
 }
 
-func (c *InspectCmd) GitHubPRNumber() (int, error) {
+func (c *CheckCmd) GitHubPRNumber() (int, error) {
 	if c._githubPRNumber != 0 {
 		return c._githubPRNumber, nil
 	}

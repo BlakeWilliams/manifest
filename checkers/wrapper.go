@@ -1,4 +1,4 @@
-package inspectors
+package checkers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/blakewilliams/manifest"
 )
 
-// Wrap wraps an inspector function to easily handle the conversion of STDIN to
+// Wrap wraps a checker function to easily handle the conversion of STDIN to
 // a `manifest.Import` and STDOUT to `manifest.Result` JSON.
 func Wrap(name string, f func(entry *manifest.Import, r *manifest.Result) error) error {
 	fi, err := os.Stdin.Stat()
@@ -38,7 +38,7 @@ func Wrap(name string, f func(entry *manifest.Import, r *manifest.Result) error)
 
 	err = f(i, result)
 	if err != nil {
-		return fmt.Errorf("failed to run inspector '%s': %w", name, err)
+		return fmt.Errorf("failed to run checker '%s': %w", name, err)
 	}
 
 	out, err := json.Marshal(result)

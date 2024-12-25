@@ -25,8 +25,8 @@ type Import struct {
 	// CurrentSha is the sha of the current commit
 	CurrentSha string `json:"currentSha"`
 
-	// Strict is true if the inspection is running in strict mode, which means
-	// it should fail if PR information is not provided.
+	// Strict is true if the checker is running in strict mode, which means
+	// it should fail if PR information is not provided and is necessary.
 	Strict bool `json:"strict"`
 
 	// Diff is the parsed changes for this diff

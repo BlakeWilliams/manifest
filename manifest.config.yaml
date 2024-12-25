@@ -1,7 +1,7 @@
 manifest:
   concurrency: 4
   formatter: pretty
-  fetchPullRequestInfo: true # Pass PR data to each inspector
-  inspectors:
+  fetchPullRequestInfo: true # Pass PR data to each checker
+  checkers:
     pr-body:
       command: 'script/runner inspector pull-body'

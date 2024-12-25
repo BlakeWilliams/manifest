@@ -1,6 +1,6 @@
 manifest:
   concurrency: 2
   formatter: pretty
-  inspectors:
+  checkers:
     rails_job_perform:
-      command: 'manifest inspector rails_job_perform'
+      command: 'manifest checker rails_job_perform'

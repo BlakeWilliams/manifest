@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Formatter is used to output inspection results. For example, you could have
+// Formatter is used to output checker results. For example, you could have
 // an stdout formatter for local development and a GitHub formatter to post
 // results to a Pull Request.
 type Formatter interface {
@@ -24,13 +24,13 @@ type FormatterWithHooks interface {
 }
 
 type Configuration struct {
-	// ConcurrentInspections is the number of inspections to run concurrently.
+	// Concurrency is the number of checkers to run concurrently.
 	Concurrency int
 	// Formatter is used to output the manifest.Result
 	Formatter     Formatter
-	Inspectors    map[string]string
+	Checkers      map[string]string
 	FetchPullInfo bool
-	// Strict determines if certain inspections or functionality should
+	// Strict determines if certain checkers or functionality should
 	// gracefully degrade based on the environment. e.g. Missing GitHub tokens.
 	Strict bool
 	// NoGH determines if the token should be pulled from `gh` if
@@ -44,9 +44,9 @@ type yamlConfiguration struct {
 		Formatter            string `yaml:"formatter"`
 		FetchPullRequestInfo bool   `yaml:"fetchPullRequestInfo"`
 		NoGH                 bool   `yaml:"noGH"`
-		Inspectors           map[string]struct {
+		Checkers             map[string]struct {
 			Command string `yaml:"command"`
-		} `yaml:"inspectors"`
+		} `yaml:"checkers"`
 	} `yaml:"manifest"`
 }
 
@@ -81,11 +81,11 @@ func ParseConfig(r io.Reader, c *Configuration, formatters map[string]Formatter)
 		c.Formatter = formatter
 	}
 
-	if c.Inspectors == nil {
-		c.Inspectors = make(map[string]string, len(yamlConfig.Manifest.Inspectors))
+	if c.Checkers == nil {
+		c.Checkers = make(map[string]string, len(yamlConfig.Manifest.Checkers))
 	}
-	for name, inspector := range yamlConfig.Manifest.Inspectors {
-		c.Inspectors[name] = inspector.Command
+	for name, checker := range yamlConfig.Manifest.Checkers {
+		c.Checkers[name] = checker.Command
 	}
 
 	return nil
