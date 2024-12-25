@@ -3,7 +3,7 @@ package manifest
 // Result is the result of a rule being run against a diff. Manifest uses the
 // result to determine if the PR passes and where to comment if configured to.
 type Result struct {
-	Failure  string
+	Failure  string    `json:"failure,omitempty"`
 	Comments []Comment `json:"comments"`
 }
 

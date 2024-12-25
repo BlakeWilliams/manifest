@@ -34,6 +34,19 @@ func UpstreamSha() (string, error) {
 	return sha, nil
 }
 
+// MostRecentSha returns the SHA of the most recent commit on the current
+// branch.
+func MostRecentSha() (string, error) {
+	shaCmd := exec.Command("git", "rev-parse", "HEAD")
+	shaOutput, err := shaCmd.Output()
+	if err != nil {
+		return "", err
+	}
+	sha := strings.TrimSpace(string(shaOutput))
+
+	return sha, nil
+}
+
 var originRegexp = regexp.MustCompile(`(?:https?://github\.com/|git@github\.com:)([^/]+)/([^\.]+)`)
 
 // NwoFromOrigin returns the owner and repo of the origin remote.
@@ -54,4 +67,15 @@ func NwoFromOrigin() (string, string, error) {
 	repo := matches[2]
 
 	return owner, repo, nil
+}
+
+func CurrentBranch() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(output)), nil
 }

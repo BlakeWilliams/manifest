@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+if command -v manifest 2>&1 >/dev/null; then
+  manifest "$@"
+else
+ go run cmd/manifest/main.go "$@"
+fi
