@@ -16,7 +16,7 @@ func UpstreamSha() (string, error) {
 	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	branchOutput, err := branchCmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get current branch for UpstreamSHA: %w", err)
 	}
 	branch := strings.TrimSpace(string(branchOutput))
 
@@ -40,7 +40,7 @@ func MostRecentSha() (string, error) {
 	shaCmd := exec.Command("git", "rev-parse", "HEAD")
 	shaOutput, err := shaCmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get most recent SHA: %w", err)
 	}
 	sha := strings.TrimSpace(string(shaOutput))
 
@@ -54,7 +54,7 @@ func NwoFromOrigin() (string, string, error) {
 	cmd := exec.Command("git", "remote", "get-url", "origin")
 	output, err := cmd.Output()
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("could not get origin remote URL: %w", err)
 	}
 
 	remoteURL := strings.TrimSpace(string(output))
@@ -74,7 +74,7 @@ func CurrentBranch() (string, error) {
 	output, err := cmd.Output()
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get current branch: %w", err)
 	}
 
 	return strings.TrimSpace(string(output)), nil
