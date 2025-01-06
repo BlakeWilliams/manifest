@@ -26,11 +26,11 @@ type Import struct {
 
 type Pull struct {
 	// Title is the title of the pull request if present.
-	Title string `json:"pullTitle,omitempty"`
+	Title string `json:"title,omitempty"`
 	// Description is the description of the pull request, if present
-	Description string `json:"pullDescription,omitempty"`
+	Description string `json:"description,omitempty"`
 	// RepoRef is the pull request number being inspected
-	Number int `json:"pullNumber,omitempty"`
+	Number int `json:"number,omitempty"`
 
 	//Draft represents if this PR is in a draft, or ready state
 	Draft bool
