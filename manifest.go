@@ -11,7 +11,7 @@ import (
 // apply rules. It includes information about the PR if present, and the diff.
 type Import struct {
 	// Pull is the pull request data being linted, like title, description, etc.
-	Pull *Pull
+	Pull *Pull `json:"pull"`
 
 	// CurrentSha is the sha of the current commit
 	CurrentSha string `json:"currentSha"`
