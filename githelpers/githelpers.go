@@ -13,7 +13,7 @@ var ErrNoPushedBranch = errors.New("no pushed branch exists for current branch")
 // UpstreamSha returns the SHA of the most recent commit on the branch pushed to
 // origin.
 func UpstreamSha() (string, error) {
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchCmd := exec.Command(gitPath(), "rev-parse", "--abbrev-ref", "HEAD")
 	branchOutput, err := branchCmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("could not get current branch for UpstreamSHA: %w", err)
@@ -21,7 +21,7 @@ func UpstreamSha() (string, error) {
 	branch := strings.TrimSpace(string(branchOutput))
 
 	// Get the latest pushed SHA for the current branch
-	shaCmd := exec.Command("git", "rev-parse", "origin/"+branch)
+	shaCmd := exec.Command(gitPath(), "rev-parse", "origin/"+branch)
 	shaOutput, err := shaCmd.Output()
 	if err != nil {
 		if strings.Contains(string(shaOutput), "unknown revision") {
@@ -37,7 +37,7 @@ func UpstreamSha() (string, error) {
 // MostRecentSha returns the SHA of the most recent commit on the current
 // branch.
 func MostRecentSha() (string, error) {
-	shaCmd := exec.Command("git", "rev-parse", "HEAD")
+	shaCmd := exec.Command(gitPath(), "rev-parse", "HEAD")
 	shaOutput, err := shaCmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("could not get most recent SHA: %w", err)
@@ -51,7 +51,7 @@ var originRegexp = regexp.MustCompile(`(?:https?://github\.com/|git@github\.com:
 
 // NwoFromOrigin returns the owner and repo of the origin remote.
 func NwoFromOrigin() (string, string, error) {
-	cmd := exec.Command("git", "remote", "get-url", "origin")
+	cmd := exec.Command(gitPath(), "remote", "get-url", "origin")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", "", fmt.Errorf("could not get origin remote URL: %w", err)
@@ -70,7 +70,7 @@ func NwoFromOrigin() (string, string, error) {
 }
 
 func CurrentBranch() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := exec.Command(gitPath(), "rev-parse", "--abbrev-ref", "HEAD")
 	output, err := cmd.Output()
 
 	if err != nil {
@@ -78,4 +78,16 @@ func CurrentBranch() (string, error) {
 	}
 
 	return strings.TrimSpace(string(output)), nil
+}
+
+func gitPath() string {
+	path, err := exec.LookPath("git")
+	if errors.Is(err, exec.ErrDot) {
+		err = nil
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	return path
 }
