@@ -10,17 +10,8 @@ import (
 // Import is the struct passed to plugins that provide the info necessary to
 // apply rules. It includes information about the PR if present, and the diff.
 type Import struct {
-	// PullTitle is the title of the pull request if present.
-	PullTitle string `json:"pullTitle,omitempty"`
-	// PullDescription is the description of the pull request, if present
-	PullDescription string `json:"pullDescription,omitempty"`
-	// RepoRef is the pull request number being inspected
-	PullNumber int `json:"pullNumber,omitempty"`
-
-	// RepoOwner is the owner of the repo
-	RepoOwner string `json:"repoOwner"`
-	// RepoName is the name of the repo
-	RepoName string `json:"repoName"`
+	// Pull is the pull request data being linted, like title, description, etc.
+	Pull *Pull
 
 	// CurrentSha is the sha of the current commit
 	CurrentSha string `json:"currentSha"`
@@ -31,6 +22,23 @@ type Import struct {
 
 	// Diff is the parsed changes for this diff
 	Diff Diff `json:"diff"`
+}
+
+type Pull struct {
+	// Title is the title of the pull request if present.
+	Title string `json:"pullTitle,omitempty"`
+	// Description is the description of the pull request, if present
+	Description string `json:"pullDescription,omitempty"`
+	// RepoRef is the pull request number being inspected
+	Number int `json:"pullNumber,omitempty"`
+
+	//Draft represents if this PR is in a draft, or ready state
+	Draft bool
+
+	// RepoOwner is the owner of the repo
+	RepoOwner string `json:"repoOwner"`
+	// RepoName is the name of the repo
+	RepoName string `json:"repoName"`
 }
 
 // Diff represents the provided diff

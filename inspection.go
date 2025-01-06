@@ -43,12 +43,14 @@ func (i *Check) PopulatePullDetails(gh github.Client, sha string, prNum int) err
 		return err
 	}
 
-	i.Import.RepoOwner = gh.Owner()
-	i.Import.RepoName = gh.Repo()
-	i.Import.PullNumber = prNum
-
-	i.Import.PullTitle = pr.Title
-	i.Import.PullDescription = pr.Body
+	i.Import.Pull = &Pull{
+		RepoOwner:   gh.Owner(),
+		RepoName:    gh.Repo(),
+		Number:      prNum,
+		Title:       pr.Title,
+		Description: pr.Body,
+		Draft:       pr.Draft,
+	}
 
 	i.Import.CurrentSha = sha
 

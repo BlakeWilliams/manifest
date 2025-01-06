@@ -7,11 +7,11 @@ import (
 )
 
 func PullBody(entry *manifest.Import, r *manifest.Result) error {
-	if entry.PullTitle == "" && entry.PullDescription == "" && entry.Strict {
+	if entry.Pull.Title == "" && entry.Pull.Description == "" && entry.Strict {
 		r.Failure = "No pull request description provided"
 	}
 
-	if strings.TrimSpace(entry.PullDescription) == "" {
+	if strings.TrimSpace(entry.Pull.Description) == "" {
 		r.Error("It looks like your pull request description is empty! Please provide a description of your changes.")
 	}
 	return nil

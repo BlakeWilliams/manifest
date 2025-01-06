@@ -38,7 +38,7 @@ var fingerprintRegex = regexp.MustCompile(`<!--\s*(manifest:.*?)\s*-->`)
 // BeforeAll grabs the comments in the PR so it can attempt to de-duplicat
 // them.
 func (f *Formatter) BeforeAll(i *manifest.Import) error {
-	comments, err := f.client.Comments(i.PullNumber)
+	comments, err := f.client.Comments(i.Pull.Number)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (f *Formatter) BeforeAll(i *manifest.Import) error {
 		}
 	}
 
-	comments, err = f.client.ReviewComments(i.PullNumber)
+	comments, err = f.client.ReviewComments(i.Pull.Number)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (f *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 			c := github.NewFileComment{
 				Sha:    i.CurrentSha,
 				Text:   message.String(),
-				Number: i.PullNumber,
+				Number: i.Pull.Number,
 				File:   comment.File,
 				Line:   int(comment.Line),
 				Side:   comment.Side,
@@ -125,7 +125,7 @@ func (f *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 	if topLevelmessage.Len() > 0 {
 		topLevelmessage.WriteString(fmt.Sprintf(footer, source))
 
-		if err := f.client.Comment(i.PullNumber, topLevelmessage.String()); err != nil {
+		if err := f.client.Comment(i.Pull.Number, topLevelmessage.String()); err != nil {
 			return err
 		}
 

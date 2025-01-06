@@ -41,6 +41,7 @@ type (
 		ID    uint
 		Title string
 		Body  string
+		Draft bool
 	}
 )
 

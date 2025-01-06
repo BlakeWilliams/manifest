@@ -39,7 +39,9 @@ func (f *fakeGitHubClient) ReviewComments(number int) ([]string, error) {
 
 func TestFormat_FileComment(t *testing.T) {
 	i := &manifest.Import{
-		PullNumber: 1,
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
 	}
 
 	result := manifest.Result{
@@ -82,7 +84,9 @@ func TestFormat_FileComment(t *testing.T) {
 
 func TestFormat_CommentError(t *testing.T) {
 	i := &manifest.Import{
-		PullNumber: 1,
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
 	}
 
 	result := manifest.Result{
@@ -111,7 +115,9 @@ func TestFormat_CommentError(t *testing.T) {
 
 func TestFormat_Deduplicates(t *testing.T) {
 	i := &manifest.Import{
-		PullNumber: 1,
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
 	}
 
 	result := manifest.Result{
