@@ -48,7 +48,7 @@ func (s *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 		}
 
 		for _, line := range strings.Split(comment.Text, "\n") {
-			fmt.Fprintf(s.out, "  > %s", line)
+			fmt.Fprintf(s.out, "  > %s\n", line)
 		}
 
 		fmt.Printf("\n\n")
