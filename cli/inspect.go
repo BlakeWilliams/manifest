@@ -236,7 +236,11 @@ func applyConfig(configArg string, rootConfig *manifest.Configuration) error {
 			return cli.Exit(fmt.Sprintf("Could not open the provided config file: %s", err), 1)
 		}
 		defer f.Close()
-		manifest.ParseConfig(f, rootConfig, map[string]manifest.Formatter{"pretty": prettyformat.New(os.Stdout)})
+
+		err = manifest.ParseConfig(f, rootConfig, map[string]manifest.Formatter{"pretty": prettyformat.New(os.Stdout)})
+		if err != nil {
+			return cli.Exit(fmt.Sprintf("Could not parse the provided config file: %s", err), 1)
+		}
 
 		return nil
 	}
@@ -262,7 +266,10 @@ func applyConfig(configArg string, rootConfig *manifest.Configuration) error {
 		}
 		defer f.Close()
 
-		manifest.ParseConfig(f, rootConfig, map[string]manifest.Formatter{"pretty": prettyformat.New(os.Stdout)})
+		err = manifest.ParseConfig(f, rootConfig, map[string]manifest.Formatter{"pretty": prettyformat.New(os.Stdout)})
+		if err != nil {
+			return cli.Exit(fmt.Sprintf("Could not parse the provided config file: %s", err), 1)
+		}
 	}
 
 	return nil
