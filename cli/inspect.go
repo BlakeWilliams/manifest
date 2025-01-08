@@ -162,7 +162,7 @@ func (c *CheckCmd) resolveFormatter(config *manifest.Configuration) error {
 			return cli.Exit(fmt.Errorf("cannot use GitHub formatter: %w", err), 1)
 		}
 
-		config.Formatter = githubformat.New(gh)
+		config.Formatter = githubformat.New(os.Stdout, gh)
 	default:
 		return fmt.Errorf("unknown formatter %s", c.formatter)
 	}

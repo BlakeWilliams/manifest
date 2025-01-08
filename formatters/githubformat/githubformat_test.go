@@ -2,6 +2,7 @@ package githubformat
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
@@ -75,7 +76,7 @@ func TestFormat_FileComment(t *testing.T) {
 			strings.Contains(comment, "> [!TIP]")
 	})).Return(nil)
 
-	formatter := New(client)
+	formatter := New(io.Discard, client)
 	err := formatter.Format("test", i, result)
 	require.NoError(t, err)
 
@@ -104,7 +105,7 @@ func TestFormat_CommentError(t *testing.T) {
 	client := &fakeGitHubClient{}
 	client.On("FileComment", mock.Anything).Return(fmt.Errorf("comment error"))
 
-	formatter := New(client)
+	formatter := New(io.Discard, client)
 	err := formatter.Format("test", i, result)
 
 	require.Error(t, err)
@@ -141,7 +142,7 @@ func TestFormat_Deduplicates(t *testing.T) {
 	client.On("Comments", 1).Return([]string{"<!-- manifest:test -->", "<!-- manifest:test:test.go:10:RIGHT -->"}, nil)
 	client.On("ReviewComments", 1).Return([]string{"<!-- manifest:test:test.go:10:RIGHT -->"}, nil)
 
-	formatter := New(client)
+	formatter := New(io.Discard, client)
 	err := formatter.BeforeAll(i)
 	require.NoError(t, err)
 	err = formatter.Format("test", i, result)
