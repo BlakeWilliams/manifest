@@ -33,7 +33,7 @@ type Pull struct {
 	Number int `json:"number,omitempty"`
 
 	//Draft represents if this PR is in a draft, or ready state
-	Draft bool
+	Draft bool `json:"draft"`
 
 	// RepoOwner is the owner of the repo
 	RepoOwner string `json:"repoOwner"`
