@@ -136,7 +136,7 @@ func (f *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 		fmt.Printf("Commenting on PR:\n %s\n", topLevelmessage.String())
 	}
 
-	return nil
+	return f.cliFormatter.Format(source, i, r)
 }
 
 func fingerprint(source string, comment manifest.Comment) string {
