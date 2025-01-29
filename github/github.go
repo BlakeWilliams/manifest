@@ -10,15 +10,23 @@ import (
 )
 
 var ErrNoPR = errors.New("no PR exists for current branch")
+type CommentType int
+
+const (
+    ReviewComment CommentType = iota
+    FileComment
+)
 
 type (
 	Client interface {
 		DetailsForPull(number int) (*PullRequest, error)
 		PullRequestIDsForBranch(sha string) ([]int, error)
 		Comment(number int, comment string) error
-		Comments(number int) ([]string, error)
-		ReviewComments(number int) ([]string, error)
+		Comments(number int) ([]Comment, error)
+		ReviewComments(number int) ([]Comment, error)
 		FileComment(NewFileComment) error
+		ResolveFileComment(comment Comment) error
+		ResolveComment(comment Comment) error
 		Owner() string
 		Repo() string
 	}
@@ -54,17 +62,17 @@ func NewClient(token string, owner string, repo string) Client {
 	}
 }
 
-func (c defaultClient) ReviewComments(number int) ([]string, error) {
+func (c defaultClient) ReviewComments(number int) ([]Comment, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%d/comments?per_page=100", c.owner, c.repo, number)
-	return c.fetchComments(url)
+	return c.fetchComments(url, FileComment)
 }
 
-func (c defaultClient) Comments(number int) ([]string, error) {
+func (c defaultClient) Comments(number int) ([]Comment, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d/comments?per_page=100", c.owner, c.repo, number)
-	return c.fetchComments(url)
+	return c.fetchComments(url, ReviewComment)
 }
 
-func (c defaultClient) fetchComments(url string) ([]string, error) {
+func (c defaultClient) fetchComments(url string, ct CommentType) ([]Comment, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -89,21 +97,18 @@ func (c defaultClient) fetchComments(url string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	type comment struct {
-		Body string `json:"body"`
-	}
 
-	var comments []comment
+	var comments []Comment
 	if err := json.Unmarshal(body, &comments); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	commentStrings := make([]string, len(comments))
-	for i, c := range comments {
-		commentStrings[i] = c.Body
+	for i := range comments {
+		comments[i].Type = ct
+		comments[i].Stale = true //By default all comments are stale unless we find a matching fingerprint
 	}
 
-	return commentStrings, nil
+	return comments, nil
 }
 
 func (c defaultClient) DetailsForPull(number int) (*PullRequest, error) {
@@ -261,5 +266,86 @@ func (c defaultClient) FileComment(fc NewFileComment) error {
 	return nil
 }
 
+func (c defaultClient) ResolveFileComment(comment Comment) error {
+	// Update the comment body to strikethrough
+	comment.Body = fmt.Sprintf("~~%s~~", comment.Body)
+
+	// Send the updated comment
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/comments/%d", c.owner, c.repo, comment.Id)
+	payload := map[string]interface{}{
+		"body":     comment.Body,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+func (c defaultClient) ResolveComment(comment Comment) error {
+	// Update the comment body to strikethrough
+	comment.Body = fmt.Sprintf("~~%s~~", comment.Body)
+
+	// Send the updated comment
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
+	payload := map[string]interface{}{
+		"body": comment.Body,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
 func (c defaultClient) Owner() string { return c.owner }
 func (c defaultClient) Repo() string  { return c.repo }
+
+type Comment struct {
+	Body string `json:"body"`
+	Id  int64    `json:"id"`
+	Type CommentType `json:"-"`
+	Stale bool `json:"-"`
+}
