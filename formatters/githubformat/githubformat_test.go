@@ -181,3 +181,36 @@ func TestFormat_Deduplicates(t *testing.T) {
 	client.AssertCalled(t, "UnresolveComment", mock.Anything)
 	client.AssertCalled(t, "UnresolveFileComment", mock.Anything)
 }
+
+func TestFormat_ResolveComment(t *testing.T) {
+	i := &manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
+	}
+
+	result := manifest.Result{
+		Comments: []manifest.Comment{},
+	}
+
+	client := &fakeGitHubClient{}
+
+	client.On("Comments", 1).Return([]github.Comment{
+		{Body: "<!-- manifest:test -->", Type: github.ReviewComment, Stale: true},
+	}, nil)
+	client.On("ReviewComments", 1).Return([]github.Comment{}, nil)
+	client.On("ResolveComment", mock.Anything).Return(nil)
+
+	formatter := New(io.Discard, client)
+	err := formatter.BeforeAll(i)
+	require.NoError(t, err)
+
+
+	err = formatter.Format("test", i, result)
+	require.NoError(t, err)
+	err = formatter.AfterAll(i)
+	require.NoError(t, err)
+
+	client.AssertExpectations(t)
+	client.AssertCalled(t, "ResolveComment", mock.Anything)
+}
