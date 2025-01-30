@@ -139,17 +139,31 @@ func TestResolveFileComment(t *testing.T) {
 
 func TestResolveComment(t *testing.T) {
 	client := &fakeGitHubClient{}
-	comment := github.Comment{
-		Body: "Test comment",
-		Id:   456,
-		Type: github.ReviewComment,
-	}
+	formatter := New(io.Discard, client)
 
-	err := client.ResolveComment(comment)
+	comment := github.Comment{Body: "<!-- manifest:test -->", Type: github.ReviewComment}
+	client.comments = append(client.comments, comment)
+
+	err := formatter.BeforeAll(&manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
+	})
 	require.NoError(t, err)
 
+	err = formatter.Format("test", &manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
+	}, manifest.Result{
+		Comments: []manifest.Comment{
+			{Text: "Test comment", Severity: manifest.SeverityError},
+		},
+	})
+
+	assert.NoError(t, err)
 	require.Len(t, client.resolvedComments, 1)
-	require.Equal(t, comment, client.resolvedComments[0])
+	require.Equal(t, "~~<!-- manifest:test -->~~", client.resolvedComments[0].Body)
 }
 
 func TestUnresolveComment(t *testing.T) {
@@ -178,7 +192,7 @@ func TestUnresolveComment(t *testing.T) {
 
 	assert.NoError(t, err)
 	require.Len(t, client.unresolvedComments, 1)
-	require.Equal(t, "~~<!-- manifest:test -->~~", client.unresolvedComments[0].Body)
+	require.Equal(t, comment.Body, client.unresolvedComments[0].Body)
 }
 
 func TestUnresolveFileComment(t *testing.T) {
