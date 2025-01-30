@@ -141,29 +141,29 @@ func TestResolveComment(t *testing.T) {
 	client := &fakeGitHubClient{}
 	formatter := New(io.Discard, client)
 
-	comment := github.Comment{Body: "<!-- manifest:test -->", Type: github.ReviewComment}
+	comment := github.Comment{Body: "<!-- manifest:test -->", Type: github.ReviewComment, Stale: true}
 	client.comments = append(client.comments, comment)
 
-	err := formatter.BeforeAll(&manifest.Import{
+	i := &manifest.Import{
 		Pull: &manifest.Pull{
 			Number: 1,
 		},
-	})
+	}
+
+	err := formatter.BeforeAll(i)
 	require.NoError(t, err)
 
-	err = formatter.Format("test", &manifest.Import{
-		Pull: &manifest.Pull{
-			Number: 1,
-		},
-	}, manifest.Result{
+	err = formatter.Format("test", i, manifest.Result{
 		Comments: []manifest.Comment{
-			{Text: "Test comment", Severity: manifest.SeverityError},
+			{Text: "Another comment", Severity: manifest.SeverityError},
 		},
 	})
+
+	err = formatter.AfterAll(i)
 
 	assert.NoError(t, err)
 	require.Len(t, client.resolvedComments, 1)
-	require.Equal(t, "~~<!-- manifest:test -->~~", client.resolvedComments[0].Body)
+	require.Equal(t, comment.Body, client.resolvedComments[0].Body)
 }
 
 func TestUnresolveComment(t *testing.T) {
@@ -173,18 +173,16 @@ func TestUnresolveComment(t *testing.T) {
 	comment := github.Comment{Body: "~~<!-- manifest:test -->~~", Type: github.ReviewComment}
 	client.comments = append(client.comments, comment)
 
-	err := formatter.BeforeAll(&manifest.Import{
+	i := &manifest.Import{
 		Pull: &manifest.Pull{
 			Number: 1,
 		},
-	})
+	}
+
+	err := formatter.BeforeAll(i)
 	require.NoError(t, err)
 
-	err = formatter.Format("test", &manifest.Import{
-		Pull: &manifest.Pull{
-			Number: 1,
-		},
-	}, manifest.Result{
+	err = formatter.Format("test", i, manifest.Result{
 		Comments: []manifest.Comment{
 			{Text: "Test comment", Severity: manifest.SeverityError},
 		},
@@ -202,18 +200,16 @@ func TestUnresolveFileComment(t *testing.T) {
 	comment := github.Comment{Body: "~~<!-- manifest:test:file:1:side -->~~", Type: github.FileComment}
 	client.comments = append(client.comments, comment)
 
-	err := formatter.BeforeAll(&manifest.Import{
+	i := &manifest.Import{
 		Pull: &manifest.Pull{
 			Number: 1,
 		},
-	})
+	}
+
+	err := formatter.BeforeAll(i)
 	require.NoError(t, err)
 
-	err = formatter.Format("test", &manifest.Import{
-		Pull: &manifest.Pull{
-			Number: 1,
-		},
-	}, manifest.Result{
+	err = formatter.Format("test", i, manifest.Result{
 		Comments: []manifest.Comment{
 			{Text: "Test comment", Severity: manifest.SeverityError, File: "file", Line: 1, Side: "side"},
 		},
