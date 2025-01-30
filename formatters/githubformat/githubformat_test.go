@@ -226,12 +226,23 @@ func TestUnresolveComment(t *testing.T) {
 
 func TestUnresolveFileComment(t *testing.T) {
 	client := &fakeGitHubClient{}
-	formatter := New(nil, client)
+	formatter := New(io.Discard, client)
 
 	comment := github.Comment{Body: "~~<!-- manifest:test:file:1:side -->~~", Type: github.FileComment}
 	client.comments = append(client.comments, comment)
 
-	err := formatter.Format("test", &manifest.Import{}, manifest.Result{
+	err := formatter.BeforeAll(&manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
+	})
+	require.NoError(t, err)
+
+	err = formatter.Format("test", &manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
+	}, manifest.Result{
 		Comments: []manifest.Comment{
 			{Text: "Test comment", Severity: manifest.SeverityError, File: "file", Line: 1, Side: "side"},
 		},
