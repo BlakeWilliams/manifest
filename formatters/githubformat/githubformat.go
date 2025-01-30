@@ -74,7 +74,7 @@ func (f *Formatter) BeforeAll(i *manifest.Import) error {
 
 func (f *Formatter) AfterAll(i *manifest.Import) error {
 
-	//cleanup stale comments
+	// cleanup stale comments
 	// If the comment is a file comment resolve it, otherwise update the text formatting to strike through
 	for _, comment := range f.existingComments {
 		if !comment.Stale {
