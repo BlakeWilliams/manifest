@@ -107,7 +107,7 @@ func (c defaultClient) fetchComments(url string, ct CommentType) ([]Comment, err
 
 	for i := range comments {
 		comments[i].Type = ct
-		comments[i].Stale = true //By default all comments are stale unless we find a matching fingerprint
+		comments[i].Stale = true // By default all comments are stale unless we find a matching fingerprint
 	}
 
 	return comments, nil
