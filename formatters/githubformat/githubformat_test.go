@@ -28,14 +28,24 @@ func (f *fakeGitHubClient) FileComment(fc github.NewFileComment) error {
 	return args.Error(0)
 }
 
-func (f *fakeGitHubClient) Comments(number int) ([]string, error) {
+func (f *fakeGitHubClient) Comments(number int) ([]github.Comment, error) {
 	args := f.Called(number)
-	return args.Get(0).([]string), args.Error(1)
+	return args.Get(0).([]github.Comment), args.Error(1)
 }
 
-func (f *fakeGitHubClient) ReviewComments(number int) ([]string, error) {
+func (f *fakeGitHubClient) ReviewComments(number int) ([]github.Comment, error) {
 	args := f.Called(number)
-	return args.Get(0).([]string), args.Error(1)
+	return args.Get(0).([]github.Comment), args.Error(1)
+}
+
+func (f *fakeGitHubClient) ResolveFileComment(comment github.Comment) error {
+	args := f.Called(comment)
+	return args.Error(0)
+}
+
+func (f *fakeGitHubClient) ResolveComment(comment github.Comment) error {
+	args := f.Called(comment)
+	return args.Error(0)
 }
 
 func TestFormat_FileComment(t *testing.T) {
@@ -150,4 +160,36 @@ func TestFormat_Deduplicates(t *testing.T) {
 
 	client.AssertExpectations(t)
 	client.AssertNotCalled(t, "FileComment", mock.Anything)
+}
+
+func TestResolveFileComment(t *testing.T) {
+	client := &fakeGitHubClient{}
+	comment := github.Comment{
+		Body: "Test file comment",
+		Id:   123,
+		Type: github.FileComment,
+	}
+
+	client.On("ResolveFileComment", comment).Return(nil)
+
+	err := client.ResolveFileComment(comment)
+	require.NoError(t, err)
+
+	client.AssertExpectations(t)
+}
+
+func TestResolveComment(t *testing.T) {
+	client := &fakeGitHubClient{}
+	comment := github.Comment{
+		Body: "Test comment",
+		Id:   456,
+		Type: github.ReviewComment,
+	}
+
+	client.On("ResolveComment", comment).Return(nil)
+
+	err := client.ResolveComment(comment)
+	require.NoError(t, err)
+
+	client.AssertExpectations(t)
 }
