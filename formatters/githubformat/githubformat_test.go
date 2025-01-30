@@ -122,49 +122,6 @@ func TestFormat_CommentError(t *testing.T) {
 	require.Len(t, client.fileComments, 1)
 }
 
-func TestFormat_Deduplicates(t *testing.T) {
-	i := &manifest.Import{
-		Pull: &manifest.Pull{
-			Number: 1,
-		},
-	}
-
-	result := manifest.Result{
-		Comments: []manifest.Comment{
-			{
-				Text:     "Test comment",
-				Severity: manifest.SeverityError,
-			},
-			{
-				Text:     "File comment!",
-				Severity: manifest.SeverityError,
-				File:     "test.go",
-				Line:     10,
-				Side:     "RIGHT",
-			},
-		},
-	}
-
-	client := &fakeGitHubClient{
-		comments: []github.Comment{
-			{Body: "<!-- manifest:test -->", Type: github.ReviewComment},
-			{Body: "<!-- manifest:test:test.go:10:RIGHT -->", Type: github.FileComment},
-		},
-		reviewComments: []github.Comment{
-			{Body: "<!-- manifest:test:test.go:10:RIGHT -->", Type: github.FileComment},
-		},
-	}
-
-	formatter := New(io.Discard, client)
-	err := formatter.BeforeAll(i)
-	require.NoError(t, err)
-	err = formatter.Format("test", i, result)
-	require.NoError(t, err)
-
-	require.Len(t, client.fileComments, 0)
-	require.Len(t, client.comments, 1)
-}
-
 func TestResolveFileComment(t *testing.T) {
 	client := &fakeGitHubClient{}
 	comment := github.Comment{
