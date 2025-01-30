@@ -27,6 +27,8 @@ type (
 		FileComment(NewFileComment) error
 		ResolveFileComment(comment Comment) error
 		ResolveComment(comment Comment) error
+		UnresolveFileComment(comment Comment) error
+		UnresolveComment(comment Comment) error
 		Owner() string
 		Repo() string
 	}
@@ -306,6 +308,80 @@ func (c defaultClient) ResolveFileComment(comment Comment) error {
 func (c defaultClient) ResolveComment(comment Comment) error {
 	// Update the comment body to strikethrough
 	comment.Body = fmt.Sprintf("~~%s~~", comment.Body)
+
+	// Send the updated comment
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
+	payload := map[string]interface{}{
+		"body": comment.Body,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+func (c defaultClient) UnresolveFileComment(comment Comment) error {
+	// Remove the strikethrough from the comment body
+	comment.Body = strings.ReplaceAll(comment.Body, "~~", "")
+
+	// Send the updated comment
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/comments/%d", c.owner, c.repo, comment.Id)
+	payload := map[string]interface{}{
+		"body": comment.Body,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
+	}
+
+	return nil
+}
+
+func (c defaultClient) UnresolveComment(comment Comment) error {
+	// Remove the strikethrough from the comment body
+	comment.Body = strings.ReplaceAll(comment.Body, "~~", "")
 
 	// Send the updated comment
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
