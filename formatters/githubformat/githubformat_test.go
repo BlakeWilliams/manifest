@@ -124,17 +124,31 @@ func TestFormat_CommentError(t *testing.T) {
 
 func TestResolveFileComment(t *testing.T) {
 	client := &fakeGitHubClient{}
-	comment := github.Comment{
-		Body: "Test file comment",
-		Id:   123,
-		Type: github.FileComment,
+	formatter := New(io.Discard, client)
+
+	comment := github.Comment{Body: "<!-- manifest:test:file:1:side -->", Type: github.FileComment, Stale: true}
+	client.comments = append(client.comments, comment)
+
+	i := &manifest.Import{
+		Pull: &manifest.Pull{
+			Number: 1,
+		},
 	}
 
-	err := client.ResolveFileComment(comment)
+	err := formatter.BeforeAll(i)
 	require.NoError(t, err)
 
+	err = formatter.Format("test", i, manifest.Result{
+		Comments: []manifest.Comment{
+			{Text: "Another comment", Severity: manifest.SeverityError, File: "file", Line: 1, Side: "side"},
+		},
+	})
+
+	err = formatter.AfterAll(i)
+
+	assert.NoError(t, err)
 	require.Len(t, client.resolvedComments, 1)
-	require.Equal(t, comment, client.resolvedComments[0])
+	require.Equal(t, comment.Body, client.resolvedComments[0].Body)
 }
 
 func TestResolveComment(t *testing.T) {
