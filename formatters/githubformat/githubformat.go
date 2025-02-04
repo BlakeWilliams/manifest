@@ -41,7 +41,7 @@ func New(out io.Writer, client GitHubClient) *Formatter {
 	}
 }
 
-var fingerprintRegex = regexp.MustCompile(`(?:~~)?<!--\s*(manifest:.*?)\s*-->(?:~~)?`)
+var fingerprintRegex = regexp.MustCompile(`(?:<strike>)?<!--\s*(manifest:.*?)\s*-->(?:</strike>)?`)
 
 // BeforeAll grabs the comments in the PR so it can attempt to de-duplicat
 // them.

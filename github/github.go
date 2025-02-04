@@ -269,8 +269,10 @@ func (c defaultClient) FileComment(fc NewFileComment) error {
 }
 
 func (c defaultClient) ResolveFileComment(comment Comment) error {
-	// Update the comment body to strikethrough
-	comment.Body = fmt.Sprintf("~~%s~~", comment.Body)
+	// Update the comment body to strikethrough if not already surrounded with <strike> tags
+	if !strings.HasPrefix(comment.Body, "<strike>") && !strings.HasSuffix(comment.Body, "</strike>") {
+		comment.Body = fmt.Sprintf("<strike>%s</strike>", comment.Body)
+	}
 
 	// Send the updated comment
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/comments/%d", c.owner, c.repo, comment.Id)
@@ -306,8 +308,10 @@ func (c defaultClient) ResolveFileComment(comment Comment) error {
 }
 
 func (c defaultClient) ResolveComment(comment Comment) error {
-	// Update the comment body to strikethrough
-	comment.Body = fmt.Sprintf("~~%s~~", comment.Body)
+	// Update the comment body to strikethrough if not already surrounded with <strike> tags
+	if !strings.HasPrefix(comment.Body, "<strike>") && !strings.HasSuffix(comment.Body, "</strike>") {
+		comment.Body = fmt.Sprintf("<strike>%s</strike>", comment.Body)
+	}
 
 	// Send the updated comment
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
@@ -343,8 +347,10 @@ func (c defaultClient) ResolveComment(comment Comment) error {
 }
 
 func (c defaultClient) UnresolveFileComment(comment Comment) error {
-	// Remove the strikethrough from the comment body
-	comment.Body = strings.ReplaceAll(comment.Body, "~~", "")
+	// Remove only the surrounding strikethrough tags from the comment body
+	if strings.HasPrefix(comment.Body, "<strike>") && strings.HasSuffix(comment.Body, "</strike>") {
+		comment.Body = comment.Body[len("<strike>") : len(comment.Body)-len("</strike>")]
+	}
 
 	// Send the updated comment
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/comments/%d", c.owner, c.repo, comment.Id)
@@ -380,8 +386,10 @@ func (c defaultClient) UnresolveFileComment(comment Comment) error {
 }
 
 func (c defaultClient) UnresolveComment(comment Comment) error {
-	// Remove the strikethrough from the comment body
-	comment.Body = strings.ReplaceAll(comment.Body, "~~", "")
+	// Remove only the surrounding strikethrough tags from the comment body
+	if strings.HasPrefix(comment.Body, "<strike>") && strings.HasSuffix(comment.Body, "</strike>") {
+		comment.Body = comment.Body[len("<strike>") : len(comment.Body)-len("</strike>")]
+	}
 
 	// Send the updated comment
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
