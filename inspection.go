@@ -107,6 +107,7 @@ func (i *Check) Perform() error {
 			output, err := cmd.Output()
 			if err != nil {
 				multiErr.Add(fmt.Errorf("`%s` check failed to run: %w", name, err))
+				fmt.Fprint(os.Stderr, string(output))
 				return
 			}
 
@@ -114,9 +115,7 @@ func (i *Check) Perform() error {
 			err = json.Unmarshal(output, &result)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to parse output for check %s: %s\n", name, err)
-				if os.Getenv("DEBUG") != "" {
-					fmt.Fprint(os.Stderr, string(output))
-				}
+				fmt.Fprint(os.Stderr, string(output))
 				multiErr.Add(err)
 				return
 			}
