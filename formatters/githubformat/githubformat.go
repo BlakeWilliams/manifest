@@ -28,8 +28,6 @@ type GitHubClient interface {
 	FileComment(github.NewFileComment) error
 	ResolveFileComment(comment github.Comment) error
 	ResolveComment(comment github.Comment) error
-	UnresolveFileComment(comment github.Comment) error
-	UnresolveComment(comment github.Comment) error
 }
 
 // TODO remove number and sha, use the import instead
@@ -41,7 +39,7 @@ func New(out io.Writer, client GitHubClient) *Formatter {
 	}
 }
 
-var fingerprintRegex = regexp.MustCompile(`(?:<strike>)?<!--\s*(manifest:.*?)\s*-->(?:</strike>)?`)
+var fingerprintRegex = regexp.MustCompile(`<!--\s*(manifest:.*?)\s*-->`)
 
 // BeforeAll grabs the comments in the PR so it can attempt to de-duplicat
 // them.
@@ -99,16 +97,6 @@ func (f *Formatter) Format(source string, i *manifest.Import, r manifest.Result)
 		if ec, ok := f.existingComments[fingerprint]; ok {
 			// This comment won't be marked as resolved because the checker still thinks it's a problem.
 			ec.Stale = false
-			 // Unresolve the comment if it was previously resolved
-			if ec.Type == github.FileComment {
-				if err := f.client.UnresolveFileComment(ec); err != nil {
-					return err
-				}
-			} else {
-				if err := f.client.UnresolveComment(ec); err != nil {
-					return err
-				}
-			}
 			continue
 		}
 
