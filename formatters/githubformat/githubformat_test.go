@@ -48,16 +48,6 @@ func (f *fakeGitHubClient) ResolveComment(comment github.Comment) error {
 	return args.Error(0)
 }
 
-func (f *fakeGitHubClient) UnresolveFileComment(comment github.Comment) error {
-	args := f.Called(comment)
-	return args.Error(0)
-}
-
-func (f *fakeGitHubClient) UnresolveComment(comment github.Comment) error {
-	args := f.Called(comment)
-	return args.Error(0)
-}
-
 func TestFormat_FileComment(t *testing.T) {
 	i := &manifest.Import{
 		Pull: &manifest.Pull{
@@ -166,8 +156,6 @@ func TestFormat_Deduplicates(t *testing.T) {
 	client.On("ReviewComments", 1).Return([]github.Comment{
 		{Body: "<!-- manifest:test:test.go:10:RIGHT -->", Type: github.FileComment},
 	}, nil)
-	client.On("UnresolveComment", mock.Anything).Return(nil)
-	client.On("UnresolveFileComment", mock.Anything).Return(nil)
 
 	formatter := New(io.Discard, client)
 	err := formatter.BeforeAll(i)
@@ -178,8 +166,6 @@ func TestFormat_Deduplicates(t *testing.T) {
 	client.AssertExpectations(t)
 
 	client.AssertNotCalled(t, "FileComment", mock.Anything)
-	client.AssertCalled(t, "UnresolveComment", mock.Anything)
-	client.AssertCalled(t, "UnresolveFileComment", mock.Anything)
 }
 
 func TestFormat_ResolveComment(t *testing.T) {

@@ -27,8 +27,6 @@ type (
 		FileComment(NewFileComment) error
 		ResolveFileComment(comment Comment) error
 		ResolveComment(comment Comment) error
-		UnresolveFileComment(comment Comment) error
-		UnresolveComment(comment Comment) error
 		Owner() string
 		Repo() string
 	}
@@ -311,84 +309,6 @@ func (c defaultClient) ResolveComment(comment Comment) error {
 	// Update the comment body to strikethrough if not already surrounded with <strike> tags
 	if !strings.HasPrefix(comment.Body, "<strike>") && !strings.HasSuffix(comment.Body, "</strike>") {
 		comment.Body = fmt.Sprintf("<strike>%s</strike>", comment.Body)
-	}
-
-	// Send the updated comment
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/comments/%d", c.owner, c.repo, comment.Id)
-	payload := map[string]interface{}{
-		"body": comment.Body,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
-	}
-
-	return nil
-}
-
-func (c defaultClient) UnresolveFileComment(comment Comment) error {
-	// Remove only the surrounding strikethrough tags from the comment body
-	if strings.HasPrefix(comment.Body, "<strike>") && strings.HasSuffix(comment.Body, "</strike>") {
-		comment.Body = comment.Body[len("<strike>") : len(comment.Body)-len("</strike>")]
-	}
-
-	// Send the updated comment
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/comments/%d", c.owner, c.repo, comment.Id)
-	payload := map[string]interface{}{
-		"body": comment.Body,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	req, err := http.NewRequest("PATCH", url, strings.NewReader(string(payloadBytes)))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, body)
-	}
-
-	return nil
-}
-
-func (c defaultClient) UnresolveComment(comment Comment) error {
-	// Remove only the surrounding strikethrough tags from the comment body
-	if strings.HasPrefix(comment.Body, "<strike>") && strings.HasSuffix(comment.Body, "</strike>") {
-		comment.Body = comment.Body[len("<strike>") : len(comment.Body)-len("</strike>")]
 	}
 
 	// Send the updated comment
