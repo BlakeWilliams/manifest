@@ -50,6 +50,10 @@ func (f *Formatter) BeforeAll(i *manifest.Import) error {
 	}
 
 	for _, comment := range comments {
+		// Ignore any comments that were previously resolved. New ones will be created if necessary
+		if strings.HasPrefix(comment.Body, "<strike>") {
+			continue;
+		}
 		matches := fingerprintRegex.FindAllStringSubmatch(comment.Body, -1)
 		for _, fingerprint := range matches {
 			f.existingComments[fingerprint[1]] = comment
